@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // Helper function to handle API requests
 const apiRequest = async (url, options = {}) => {
@@ -49,52 +49,14 @@ const apiRequest = async (url, options = {}) => {
 
 // Authentication API functions
 export const loginUser = async (credentials) => {
-  // Demo mode - remove this when backend is ready
-  if (process.env.NODE_ENV === 'development' && !process.env.REACT_APP_API_URL) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo login - always succeed with test credentials
-    if (credentials.email === 'demo@legaleyes.com' && credentials.password === 'demo123') {
-      return {
-        token: 'demo-jwt-token-' + Date.now(),
-        user: {
-          id: 1,
-          email: credentials.email,
-          username: 'demo-user',
-          name: 'Demo User'
-        }
-      };
-    } else {
-      throw new Error('Demo mode: Use email "demo@legaleyes.com" and password "demo123"');
-    }
-  }
-  
-  return apiRequest('/auth/login', {
+  return apiRequest('/auth/login/', {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
 };
 
 export const registerUser = async (userData) => {
-  // Demo mode - remove this when backend is ready
-  if (process.env.NODE_ENV === 'development' && !process.env.REACT_APP_API_URL) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Demo registration - always succeed
-    return {
-      token: 'demo-jwt-token-' + Date.now(),
-      user: {
-        id: Date.now(),
-        email: userData.email,
-        username: userData.username,
-        name: userData.username
-      }
-    };
-  }
-  
-  return apiRequest('/auth/register', {
+  return apiRequest('/auth/register/', {
     method: 'POST',
     body: JSON.stringify({
       email: userData.email,
@@ -105,30 +67,30 @@ export const registerUser = async (userData) => {
 };
 
 export const logoutUser = async () => {
-  return apiRequest('/auth/logout', {
+  return apiRequest('/auth/logout/', {
     method: 'POST',
   });
 };
 
 export const getCurrentUser = async () => {
-  return apiRequest('/auth/me');
+  return apiRequest('/auth/me/');
 };
 
 export const refreshToken = async () => {
-  return apiRequest('/auth/refresh', {
+  return apiRequest('/auth/refresh/', {
     method: 'POST',
   });
 };
 
 export const forgotPassword = async (email) => {
-  return apiRequest('/auth/forgot-password', {
+  return apiRequest('/auth/forgot-password/', {
     method: 'POST',
     body: JSON.stringify({ email }),
   });
 };
 
 export const resetPassword = async (token, newPassword) => {
-  return apiRequest('/auth/reset-password', {
+  return apiRequest('/auth/reset-password/', {
     method: 'POST',
     body: JSON.stringify({ token, password: newPassword }),
   });

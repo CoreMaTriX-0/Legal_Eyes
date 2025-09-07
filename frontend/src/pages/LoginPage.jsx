@@ -15,11 +15,14 @@ const LoginPage = () => {
 
     try {
       const response = await loginUser(formData);
-      
-      // Store token in localStorage (or use a state management solution)
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
+      // Store JWT access token
+      if (response.access) {
+        localStorage.setItem('token', response.access);
+      }
+      // Optionally store user info if returned
+      if (response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
       // Redirect to dashboard or home page
       navigate('/dashboard');
     } catch (err) {

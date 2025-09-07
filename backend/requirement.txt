@@ -3,3 +3,11 @@ djangorestframework>=3.15.0,<4.0
 djangorestframework-simplejwt>=5.3.0,<6.0
 PyJWT>=2.8.0,<3.0
 django-cors-headers
+python-decouple>=3.8
+
+# Document processing
+PyPDF2>=3.0.0
+python-docx>=0.8.11
+
+# HTTP requests for AI API
+requests>=2.31.0

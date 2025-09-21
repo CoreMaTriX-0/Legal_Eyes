@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import IndexPage from './pages/index';
+import ChatPage from './pages/ChatPage';
 import { isAuthenticated } from './utils/authApi';
 import './components/Auth/Auth.css';
 
@@ -105,14 +107,17 @@ function App() {
             } 
           />
           
-          {/* Default redirect */}
+
+          {/* Landing page at root */}
           <Route 
             path="/" 
-            element={
-              isAuthenticated() ? 
-                <Navigate to="/dashboard" /> : 
-                <Navigate to="/login" />
-            } 
+            element={<IndexPage />} 
+          />
+
+          {/* Chat page route */}
+          <Route 
+            path="/chat" 
+            element={<ChatPage />} 
           />
           
           {/* Catch all route */}

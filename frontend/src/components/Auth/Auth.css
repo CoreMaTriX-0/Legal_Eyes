@@ -8,7 +8,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
   line-height: 1.5;
   color: #1f2328;
-  background-color: #ffffff;
+  background-color: #2F2F2F !important;
 }
 
 /* Auth Container */
@@ -161,7 +161,17 @@ body {
   border-radius: 6px;
   appearance: none;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: transform 0.25s cubic-bezier(.4,2,.3,1), box-shadow 0.25s;
+}
+
+.btn:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: 0 36px 112px 0 rgba(0,0,0,0.40);
+}
+
+.btn:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 36px 112px 0 rgba(0,0,0,0.35);
 }
 
 .btn:disabled {

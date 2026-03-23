@@ -14,14 +14,9 @@ const RegisterPage = () => {
     setError('');
 
     try {
-      const response = await registerUser(formData);
-      
-      // Store token in localStorage (or use a state management solution)
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      // Redirect to dashboard or welcome page
-      navigate('/dashboard');
+      // registerUser returns the created User object (id, username, email) — no token
+      await registerUser(formData);
+      navigate('/login', { state: { registered: true } });
     } catch (err) {
       setError(err.message || 'An error occurred during registration');
     } finally {
@@ -30,16 +25,16 @@ const RegisterPage = () => {
   };
 
   return (
-    <AuthLayout 
+    <AuthLayout
       title="Create your account"
       subtitle="Join Legal Eyes and start managing your legal documents securely"
     >
-      <RegisterForm 
+      <RegisterForm
         onSubmit={handleRegister}
         loading={loading}
         error={error}
       />
-      
+
       <div className="auth-footer">
         <p>
           Already have an account?{' '}

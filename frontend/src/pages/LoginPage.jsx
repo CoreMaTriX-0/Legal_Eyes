@@ -15,16 +15,17 @@ const LoginPage = () => {
 
     try {
       const response = await loginUser(formData);
-      // Store JWT access token
+      // simplejwt returns { access, refresh }
       if (response.access) {
         localStorage.setItem('token', response.access);
+        localStorage.setItem('refreshToken', response.refresh || '');
+        // Save the explicitly returned user details from our custom login endpoint
+        localStorage.setItem('user', JSON.stringify({ 
+          username: response.username || formData.username,
+          email: response.email || ''
+        }));
       }
-      // Optionally store user info if returned
-      if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
-      }
-      // Redirect to dashboard or home page
-      navigate('/dashboard');
+      navigate('/chat');
     } catch (err) {
       setError(err.message || 'An error occurred during login');
     } finally {
@@ -34,12 +35,12 @@ const LoginPage = () => {
 
   return (
     <AuthLayout title="Sign in to Legal Eyes">
-      <LoginForm 
+      <LoginForm
         onSubmit={handleLogin}
         loading={loading}
         error={error}
       />
-      
+
       <div className="auth-footer">
         <p>
           New to Legal Eyes?{' '}

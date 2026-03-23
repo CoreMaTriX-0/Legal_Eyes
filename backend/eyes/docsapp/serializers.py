@@ -4,8 +4,8 @@ from .models import LegalDocument
 class LegalDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalDocument
-        fields = ['id', 'original_name', 'file_type', 'file_size', 'uploaded_at', 'processing_status']
-        read_only_fields = ['id', 'uploaded_at', 'processing_status']
+        fields = ['id', 'original_name', 'file', 'file_type', 'file_size', 'uploaded_at', 'processing_status']
+        read_only_fields = ['id', 'file', 'uploaded_at', 'processing_status']
 
 class DocumentUploadSerializer(serializers.ModelSerializer):
     file = serializers.FileField()

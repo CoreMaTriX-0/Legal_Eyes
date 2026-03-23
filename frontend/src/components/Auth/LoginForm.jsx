@@ -4,7 +4,7 @@ import './Auth.css';
 
 const LoginForm = ({ onSubmit, loading, error }) => {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
 
@@ -30,18 +30,18 @@ const LoginForm = ({ onSubmit, loading, error }) => {
       )}
 
       <div className="form-group">
-        <label htmlFor="email" className="form-label">
-          Username or email address
+        <label htmlFor="username" className="form-label">
+          Username
         </label>
         <input
-          type="email"
-          id="email"
-          name="email"
+          type="text"
+          id="username"
+          name="username"
           className="form-input"
-          value={formData.email}
+          value={formData.username}
           onChange={handleChange}
           required
-          autoComplete="email"
+          autoComplete="username"
           autoFocus
         />
       </div>
@@ -67,8 +67,8 @@ const LoginForm = ({ onSubmit, loading, error }) => {
         />
       </div>
 
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         className="btn btn-primary btn-block"
         disabled={loading}
       >

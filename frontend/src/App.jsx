@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import IndexPage from './pages/index';
 import ChatPage from './pages/ChatPage';
+import DocumentsPage from './pages/DocumentsPage';
 import { isAuthenticated } from './utils/authApi';
 import './components/Auth/Auth.css';
 
@@ -17,59 +18,56 @@ const PublicRoute = ({ children }) => {
   return !isAuthenticated() ? children : <Navigate to="/dashboard" />;
 };
 
-// Placeholder Dashboard component
+// Profile/Dashboard component
 const Dashboard = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isDemoMode = !process.env.REACT_APP_API_URL && process.env.NODE_ENV === 'development';
   
   return (
-    <div style={{ padding: '20px', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-      {isDemoMode && (
-        <div style={{
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          borderRadius: '6px',
-          padding: '12px',
-          marginBottom: '20px',
-          color: '#856404'
-        }}>
-          <strong>Demo Mode:</strong> Backend server not connected. Using demo authentication.
-        </div>
-      )}
+    <div style={{ padding: '40px 20px', textAlign: 'center', maxWidth: '600px', margin: '40px auto', backgroundColor: '#1E1E1E', borderRadius: '12px', color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+      <h1 style={{ fontFamily: 'Itim, cursive', fontSize: '36px', marginBottom: '10px' }}>Legal Eyes Profile</h1>
+      <div style={{ backgroundColor: '#2F2F2F', borderRadius: '8px', padding: '24px', margin: '20px 0' }}>
+        <p style={{ fontSize: '18px', margin: '10px 0' }}>Username: <strong style={{ color: '#4caf50' }}>{user.username || user.name || 'User'}</strong></p>
+        <p style={{ fontSize: '18px', margin: '10px 0' }}>Email: <strong>{user.email || 'N/A'}</strong></p>
+      </div>
       
-      <h1>Welcome to Legal Eyes Dashboard</h1>
-      <p>Hello, <strong>{user.username || user.name || 'User'}</strong>!</p>
-      <p>You are successfully logged in with email: <strong>{user.email}</strong></p>
-      
-      {isDemoMode && (
-        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
-          <h3>Demo Credentials</h3>
-          <p><strong>Email:</strong> demo@legaleyes.com</p>
-          <p><strong>Password:</strong> demo123</p>
-          <p style={{ fontSize: '14px', color: '#666' }}>
-            To connect to a real backend, set the REACT_APP_API_URL environment variable.
-          </p>
-        </div>
-      )}
-      
-      <button 
-        onClick={() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: '#d1242f',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          marginTop: '20px'
-        }}
-      >
-        Logout
-      </button>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '30px' }}>
+        <button 
+          onClick={() => {
+            window.location.href = '/chat';
+          }}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#fff',
+            color: '#1E1E1E',
+            border: 'none',
+            borderRadius: '24px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '16px'
+          }}
+        >
+          Go to Chat
+        </button>
+        <button 
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+          }}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#d1242f',
+            color: 'white',
+            border: 'none',
+            borderRadius: '24px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '16px'
+          }}
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 };
@@ -117,7 +115,21 @@ function App() {
           {/* Chat page route */}
           <Route 
             path="/chat" 
-            element={<ChatPage />} 
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Documents page route */}
+          <Route 
+            path="/documents" 
+            element={
+              <ProtectedRoute>
+                <DocumentsPage />
+              </ProtectedRoute>
+            } 
           />
           
           {/* Catch all route */}

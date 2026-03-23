@@ -29,7 +29,9 @@ class DocumentUploadView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         document = serializer.save()
         
         # Extract text in the background (you might want to use Celery for this in production)
@@ -45,10 +47,16 @@ class DocumentUploadView(generics.CreateAPIView):
             
             document.save()
             
+            # Return full document representation including ID
+            response_serializer = LegalDocumentSerializer(document)
+            headers = self.get_success_headers(response_serializer.data)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
         except Exception as e:
             logger.error(f"Error processing document {document.id}: {str(e)}")
             document.processing_status = 'failed'
             document.save()
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DocumentDetailView(generics.RetrieveDestroyAPIView):
     """Get or delete a specific document"""

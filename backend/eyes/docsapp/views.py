@@ -11,7 +11,7 @@ from django.conf import settings
 from .models import LegalDocument
 from .serializers import LegalDocumentSerializer, DocumentUploadSerializer
 from .services import extract_text_from_file
-from .ai_service import GeminiService
+from .ai_service import OllamaService
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,8 @@ def document_summary(request, document_id):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    gemini_service = GeminiService()
-    summary = gemini_service.summarize_document(document.extracted_text)
+    ai_service = OllamaService()
+    summary = ai_service.summarize_document(document.extracted_text)
     
     if summary:
         return Response({'summary': summary})
@@ -109,8 +109,8 @@ def document_simplify(request, document_id):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    gemini_service = GeminiService()
-    simplified = gemini_service.simplify_clauses(document.extracted_text)
+    ai_service = OllamaService()
+    simplified = ai_service.simplify_clauses(document.extracted_text)
     
     if simplified:
         return Response({'simplified_text': simplified})
@@ -136,8 +136,8 @@ def document_risks(request, document_id):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    gemini_service = GeminiService()
-    risks = gemini_service.identify_risks(document.extracted_text)
+    ai_service = OllamaService()
+    risks = ai_service.identify_risks(document.extracted_text)
     
     if risks:
         return Response({'risks': risks})
@@ -170,8 +170,8 @@ def document_qa(request, document_id):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    gemini_service = GeminiService()
-    answer = gemini_service.answer_question(document.extracted_text, question)
+    ai_service = OllamaService()
+    answer = ai_service.answer_question(document.extracted_text, question)
     
     if answer:
         return Response({
@@ -186,23 +186,23 @@ def document_qa(request, document_id):
 
 # Test APIs for easy feature testing
 @api_view(['GET'])
-def test_gemini_connection(request):
-    """Test if Gemini API is working"""
-    gemini_service = GeminiService()
+def test_ollama_connection(request):
+    """Test if Ollama API is working"""
+    ai_service = OllamaService()
     
     # Simple test prompt
-    test_response = gemini_service._make_request("Hello, can you respond with 'Gemini API is working!'?")
+    test_response = ai_service._make_request("Hello, can you respond with 'Ollama API is working!'?")
     
     if test_response:
         return Response({
             'status': 'success',
-            'message': 'Gemini API is connected and working',
+            'message': 'Ollama API is connected and working',
             'response': test_response
         })
     else:
         return Response({
             'status': 'error',
-            'message': 'Failed to connect to Gemini API. Check your API key.'
+            'message': 'Failed to connect to Ollama API. Check Ollama server and model configuration.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -277,15 +277,15 @@ def test_ai_analysis(request):
             'error': 'No text provided. Send JSON with "text" field.'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    gemini_service = GeminiService()
+    ai_service = OllamaService()
     
     try:
         if analysis_type == 'summary':
-            result = gemini_service.summarize_document(text)
+            result = ai_service.summarize_document(text)
         elif analysis_type == 'simplify':
-            result = gemini_service.simplify_clauses(text)
+            result = ai_service.simplify_clauses(text)
         elif analysis_type == 'risks':
-            result = gemini_service.identify_risks(text)
+            result = ai_service.identify_risks(text)
         else:
             return Response({
                 'error': 'Invalid analysis type. Use: summary, simplify, or risks'
@@ -321,10 +321,10 @@ def test_qa(request):
             'error': 'Both "text" and "question" fields are required.'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    gemini_service = GeminiService()
+    ai_service = OllamaService()
     
     try:
-        answer = gemini_service.answer_question(text, question)
+        answer = ai_service.answer_question(text, question)
         
         if answer:
             return Response({

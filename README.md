@@ -1,6 +1,6 @@
 # Legal Eyes 👁️⚖️
 
-> **AI-powered legal document analysis platform** — upload your contracts, NDAs, or any legal document and let Gemini AI summarize, simplify, flag risks, and answer your questions about it.
+> **AI-powered legal document analysis platform** — upload your contracts, NDAs, or any legal document and let Ollama (Qwen) summarize, simplify, flag risks, and answer your questions about it.
 
 ---
 
@@ -26,7 +26,7 @@ Legal Eyes is a full-stack web application that helps users understand complex l
 
 1. **Register / Log in** securely with JWT authentication.
 2. **Upload** a legal document (PDF, DOCX, or TXT).
-3. **Interact** with the document through an AI chat interface powered by **Google Gemini 2.0 Flash**.
+3. **Interact** with the document through an AI chat interface powered by **Ollama + Qwen 7B**.
 4. Get an instant **summary**, **plain-language simplification**, **risk identification**, and **Q&A** answers derived directly from the document.
 
 ---
@@ -38,7 +38,7 @@ Legal_Eyes/
 ├── backend/          # Django REST API (Python)
 │   └── eyes/
 │       ├── userauth/    # JWT-based authentication (register, login, refresh)
-│       ├── docsapp/     # Document management + Gemini AI features
+│       ├── docsapp/     # Document management + Ollama AI features
 │       └── eyes/        # Django project settings & root URLs
 ├── frontend/         # React SPA (JavaScript)
 │   └── src/
@@ -56,7 +56,7 @@ Legal_Eyes/
 |-------------|-------------------------------------------------|
 | Backend     | Python 3, Django 5, Django REST Framework       |
 | Auth        | JWT via `djangorestframework-simplejwt`         |
-| AI Engine   | Google Gemini 2.0 Flash (REST API)             |
+| AI Engine   | Ollama (local REST API) + Qwen 7B              |
 | Doc Parsing | PyPDF2 (PDF), python-docx (DOCX), built-in (TXT)|
 | Frontend    | React 18, React Router v6, Lucide React icons   |
 | Database    | SQLite (dev) — swap for PostgreSQL in production|
@@ -76,7 +76,7 @@ eyes/
 ├── docsapp/
 │   ├── models.py       # LegalDocument model
 │   ├── services.py     # Text extraction (PDF / DOCX / TXT)
-│   ├── ai_service.py   # GeminiService wrapper (summarize, simplify, risks, Q&A)
+│   ├── ai_service.py   # OllamaService wrapper (summarize, simplify, risks, Q&A)
 │   ├── serializers.py  # Document serializers
 │   ├── views.py        # All document & AI API views
 │   └── urls.py         # Document & AI endpoint routes
@@ -109,7 +109,7 @@ src/
 
 - Python 3.10+
 - Node.js 18+ & npm
-- A [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+- Ollama installed locally with a pulled model (for example: `qwen2.5:7b`)
 
 ---
 
@@ -172,7 +172,9 @@ SECRET_KEY=your-very-secret-django-key
 DEBUG=True
 
 # Required for AI features
-GEMINI_API_KEY=your-google-gemini-api-key
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_TIMEOUT=60
 ```
 
 For the frontend, create a `.env` file inside `frontend/` if you need to override the API URL:
@@ -215,7 +217,7 @@ REACT_APP_API_URL=http://localhost:8000
 
 | Method | Endpoint       | Description                              |
 |--------|----------------|------------------------------------------|
-| GET    | `gemini/`      | Verify Gemini API connection             |
+| GET    | `ollama/`      | Verify local Ollama API connection       |
 | POST   | `extract/`     | Test text extraction without saving      |
 | POST   | `ai/`          | Test AI analysis with raw text           |
 | POST   | `qa/`          | Test Q&A with raw text + question        |

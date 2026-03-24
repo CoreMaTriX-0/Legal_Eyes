@@ -14,7 +14,8 @@ urlpatterns = [
     path('<int:document_id>/qa/', views.document_qa, name='document-qa'),
     
     # Test APIs (for development/testing)
-    path('test/gemini/', views.test_gemini_connection, name='test-gemini'),
+    path('test/ollama/', views.test_ollama_connection, name='test-ollama'),
+    path('test/gemini/', views.test_ollama_connection, name='test-gemini'),
     path('test/extract/', views.test_text_extraction, name='test-text-extraction'),
     path('test/ai/', views.test_ai_analysis, name='test-ai-analysis'),
     path('test/qa/', views.test_qa, name='test-qa'),

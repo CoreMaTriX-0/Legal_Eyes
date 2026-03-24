@@ -164,19 +164,27 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Logging configuration
+AI_LOG_LEVEL = config('AI_LOG_LEVEL', default='INFO').upper()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+        },
+    },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': AI_LOG_LEVEL,
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'docsapp': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': AI_LOG_LEVEL,
             'propagate': True,
         },
     },

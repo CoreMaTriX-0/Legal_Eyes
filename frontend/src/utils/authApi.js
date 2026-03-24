@@ -40,6 +40,10 @@ const apiRequest = async (url, options = {}, requiresAuth = true) => {
       throw new Error(errorMessage);
     }
 
+    if (response.status === 204) {
+      return null;
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -86,6 +90,10 @@ export const getCurrentUser = async () => {
 
 export const getDocuments = async () => {
   return apiRequest('/docs/');
+};
+
+export const deleteDocument = async (id) => {
+  return apiRequest(`/docs/${id}/`, { method: 'DELETE' });
 };
 
 export const refreshToken = async () => {

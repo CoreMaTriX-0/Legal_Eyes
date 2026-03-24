@@ -7,9 +7,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
       <div className="auth-wrapper">
         <div className="auth-header">
           <div className="logo">
-            <svg height="32" width="32" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7V10C2 16 6 20.5 12 22C18 20.5 22 16 22 10V7L12 2Z" />
-            </svg>
+            <img src="/legaleye logo.png" alt="Legal Eyes" className="logo-img" />
             <span className="logo-text">Legal Eyes</span>
           </div>
           <h1 className="auth-title">{title}</h1>

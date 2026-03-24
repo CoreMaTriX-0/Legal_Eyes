@@ -25,9 +25,12 @@
 Legal Eyes is a full-stack web application that helps users understand complex legal documents without needing a lawyer. Users can:
 
 1. **Register / Log in** securely with JWT authentication.
-2. **Upload** a legal document (PDF, DOCX, or TXT).
+2. **Upload** a legal document (PDF, DOCX, or TXT) and track progress with real-time feedback.
 3. **Interact** with the document through an AI chat interface powered by **Ollama + Qwen 7B**.
 4. Get an instant **summary**, **plain-language simplification**, **risk identification**, and **Q&A** answers derived directly from the document.
+5. Manage tracking with a built-in **History Page** and **My Documents** library.
+
+The application features a modern, premium **dark-themed, ChatGPT/Gemini-inspired UI** built strictly with React and vanilla CSS for optimal performance and aesthetics.
 
 ---
 
@@ -42,9 +45,9 @@ Legal_Eyes/
 │       └── eyes/        # Django project settings & root URLs
 ├── frontend/         # React SPA (JavaScript)
 │   └── src/
-│       ├── components/  # Auth UI components
-│       ├── pages/       # Landing, Login, Register, Chat pages
-│       └── utils/       # API client & validators
+│       ├── components/  # Auth UI components, Sidebar navigation
+│       ├── pages/       # Landing, Login, Chat, History, and Documents pages
+│       └── utils/       # API client, validators, and chat history storage
 └── mobile/           # Mobile app (coming soon — Farhan's area 🚧)
 ```
 
@@ -89,15 +92,22 @@ eyes/
 
 ```
 src/
-├── components/Auth/    # AuthLayout, LoginForm, RegisterForm, Auth.css
+├── components/
+│   ├── Auth/           # AuthLayout, LoginForm, RegisterForm, Auth.css
+│   └── Sidebar/        # Global Sidebar navigation menu
 ├── pages/
-│   ├── index.jsx       # Landing page (logo + navigation buttons)
+│   ├── index.jsx       # Landing page (logo + navigation buttons, particle background)
 │   ├── LoginPage.jsx   # Login page
 │   ├── RegisterPage.jsx# Registration page
-│   └── ChatPage.jsx    # AI document chat interface
+│   ├── ChatPage.jsx    # AI document chat interface
+│   ├── HistoryPage.jsx # Past chat histories
+│   └── DocumentsPage.jsx # Uploaded documents library
+├── styles/
+│   └── global.css      # Core design tokens, CSS variables, typography, animations
 ├── utils/
 │   ├── authApi.js      # API client (login, register, token management)
-│   └── validators.js   # Form validation (email, password, username)
+│   ├── validators.js   # Form validation (email, password, username)
+│   └── chatHistory.js  # LocalStorage chat persistence
 └── App.jsx             # Router with protected + public route guards
 ```
 
@@ -235,13 +245,15 @@ REACT_APP_API_URL=http://localhost:8000
 - [x] AI-powered clause simplification
 - [x] AI-powered risk identification
 - [x] AI-powered Q&A on document content
-- [x] Chat interface for interacting with uploaded documents
-- [x] Landing page with logo and navigation
-- [x] Test endpoints for rapid backend development
+- [x] **New:** Modern, responsive dark-themed Chat interface (ChatGPT/Gemini inspired)
+- [x] **New:** Real-time upload progress and thumbnail preview parsing
+- [x] **New:** Stop-generation capability (AbortController) to cancel active AI queries
+- [x] **New:** Chat History persistence tracking past sessions
+- [x] **New:** "My Documents" library page with irrecoverable delete confirmation modal
+- [x] Landing page with animated particle background
 
 ### 🚧 Planned / In Progress
 
-- [ ] Document library / My Documents page
 - [ ] Mobile application (React Native — `mobile/` directory)
 - [ ] Production deployment configuration
 - [ ] Async document processing with Celery

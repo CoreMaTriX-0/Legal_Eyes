@@ -2,8 +2,9 @@ import logging
 import hashlib
 import time
 import uuid
+import json
 import requests
-from typing import Optional
+from typing import Iterable, Optional, Union
 from decouple import config
 
 logger = logging.getLogger(__name__)
@@ -141,8 +142,125 @@ class OllamaService:
                 str(e),
             )
             return None
+
+    def _make_stream_request(self, prompt: str) -> Iterable[str]:
+        """Stream chunks from the local Ollama API as they are generated."""
+        request_id = uuid.uuid4().hex[:8]
+        endpoint = f"{self.base_url.rstrip('/')}/api/generate"
+        prompt_chars = len(prompt)
+        prompt_sha = hashlib.sha256(prompt.encode('utf-8', errors='ignore')).hexdigest()[:16]
+
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        data = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": True,
+        }
+
+        logger.info(
+            "ollama_stream_start request_id=%s model=%s endpoint=%s timeout_s=%s prompt_chars=%s prompt_sha=%s",
+            request_id,
+            self.model,
+            endpoint,
+            self.timeout,
+            prompt_chars,
+            prompt_sha,
+        )
+        if self.log_prompt_preview:
+            logger.debug(
+                "ollama_stream_prompt_preview request_id=%s preview=%s",
+                request_id,
+                self._preview_text(prompt, self.prompt_preview_chars),
+            )
+
+        started_at = time.perf_counter()
+
+        def chunk_generator():
+            response_chars = 0
+            try:
+                with requests.post(
+                    endpoint,
+                    headers=headers,
+                    json=data,
+                    timeout=self.timeout,
+                    stream=True,
+                ) as response:
+                    response.raise_for_status()
+
+                    for line in response.iter_lines(decode_unicode=True):
+                        if not line:
+                            continue
+
+                        try:
+                            payload = json.loads(line)
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                "ollama_stream_bad_json request_id=%s line_preview=%s",
+                                request_id,
+                                self._preview_text(line, 200),
+                            )
+                            continue
+
+                        chunk = payload.get('response', '')
+                        if chunk:
+                            response_chars += len(chunk)
+                            yield chunk
+
+                        if payload.get('done'):
+                            elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                            logger.info(
+                                "ollama_stream_success request_id=%s elapsed_ms=%s response_chars=%s prompt_eval_count=%s eval_count=%s done_reason=%s total_duration_ns=%s",
+                                request_id,
+                                elapsed_ms,
+                                response_chars,
+                                payload.get('prompt_eval_count'),
+                                payload.get('eval_count'),
+                                payload.get('done_reason'),
+                                payload.get('total_duration'),
+                            )
+                            break
+            except requests.exceptions.Timeout as e:
+                elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                logger.error(
+                    "ollama_stream_timeout request_id=%s elapsed_ms=%s error=%s",
+                    request_id,
+                    elapsed_ms,
+                    str(e),
+                )
+            except requests.exceptions.HTTPError as e:
+                elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                status_code = e.response.status_code if e.response is not None else "unknown"
+                response_body = e.response.text if e.response is not None else ""
+                logger.error(
+                    "ollama_stream_http_error request_id=%s status=%s elapsed_ms=%s body_preview=%s",
+                    request_id,
+                    status_code,
+                    elapsed_ms,
+                    self._preview_text(response_body, 1000),
+                )
+            except requests.exceptions.RequestException as e:
+                elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                logger.error(
+                    "ollama_stream_network_error request_id=%s elapsed_ms=%s error=%s",
+                    request_id,
+                    elapsed_ms,
+                    str(e),
+                )
+            except Exception as e:
+                elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                logger.exception(
+                    "ollama_stream_unexpected_error request_id=%s elapsed_ms=%s error=%s",
+                    request_id,
+                    elapsed_ms,
+                    str(e),
+                )
+
+        return chunk_generator()
     
-    def summarize_document(self, text: str) -> Optional[str]:
+    def summarize_document(self, text: str, stream: bool = False) -> Union[Optional[str], Iterable[str]]:
         """Generate a summary of the legal document"""
         prompt = f"""
         Please provide a clear, concise summary of this legal document. Focus on:
@@ -152,12 +270,14 @@ class OllamaService:
         4. Key risks or notable clauses
         
         Document text:
-        {text[:4000]}  # Limit text to avoid token limits
+        {text[:10000]}  # Limit text to avoid token limits
         """
         
+        if stream:
+            return self._make_stream_request(prompt)
         return self._make_request(prompt)
     
-    def simplify_clauses(self, text: str) -> Optional[str]:
+    def simplify_clauses(self, text: str, stream: bool = False) -> Union[Optional[str], Iterable[str]]:
         """Simplify complex legal language"""
         prompt = f"""
         Please rewrite this legal text in simple, easy-to-understand language while maintaining the original meaning. 
@@ -166,9 +286,11 @@ class OllamaService:
         {text[:4000]}
         """
         
+        if stream:
+            return self._make_stream_request(prompt)
         return self._make_request(prompt)
     
-    def identify_risks(self, text: str) -> Optional[str]:
+    def identify_risks(self, text: str, stream: bool = False) -> Union[Optional[str], Iterable[str]]:
         """Identify potential risks in the document"""
         prompt = f"""
         Please analyze this legal document and identify potential risks, concerns, or unfavorable terms. 
@@ -177,9 +299,11 @@ class OllamaService:
         {text[:4000]}
         """
         
+        if stream:
+            return self._make_stream_request(prompt)
         return self._make_request(prompt)
     
-    def answer_question(self, document_text: str, question: str) -> Optional[str]:
+    def answer_question(self, document_text: str, question: str, stream: bool = False) -> Union[Optional[str], Iterable[str]]:
         """Answer a specific question about the document"""
         prompt = f"""
         Based on the following legal document, please answer this question: {question}
@@ -192,4 +316,6 @@ class OllamaService:
         Please provide a clear, specific answer based only on the information in the document.
         """
         
+        if stream:
+            return self._make_stream_request(prompt)
         return self._make_request(prompt)

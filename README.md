@@ -38,31 +38,33 @@ The application features a modern, premium **dark-themed, ChatGPT/Gemini-inspire
 
 ```
 Legal_Eyes/
-├── backend/          # Django REST API (Python)
+├── backend/                    # Django REST API (Python)
 │   └── eyes/
-│       ├── userauth/    # JWT-based authentication (register, login, refresh)
-│       ├── docsapp/     # Document management + Ollama AI features
-│       └── eyes/        # Django project settings & root URLs
-├── frontend/         # React SPA (JavaScript)
+│       ├── userauth/           # JWT authentication (register, login, token refresh)
+│       ├── docsapp/            # Document management + AI analysis
+│       └── eyes/               # Django settings & root URL routing
+├── frontend/                   # React SPA (JavaScript/React 18)
 │   └── src/
-│       ├── components/  # Auth UI components, Sidebar navigation
-│       ├── pages/       # Landing, Login, Chat, History, and Documents pages
-│       └── utils/       # API client, validators, and chat history storage
-└── mobile/           # Mobile app (coming soon — Farhan's area 🚧)
+│       ├── components/         # Auth UI, Sidebar navigation
+│       ├── pages/              # Landing, Login, Chat, History, Documents
+│       ├── utils/              # API client, validators, chat persistence
+│       └── styles/             # Global CSS with dark theme
+└── mobile/                     # Mobile app (React Native — coming soon)
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer       | Technology                                      |
-|-------------|-------------------------------------------------|
-| Backend     | Python 3, Django 5, Django REST Framework       |
-| Auth        | JWT via `djangorestframework-simplejwt`         |
-| AI Engine   | Ollama (local REST API) + Qwen 7B              |
-| Doc Parsing | PyPDF2 (PDF), python-docx (DOCX), built-in (TXT)|
-| Frontend    | React 18, React Router v6, Lucide React icons   |
-| Database    | SQLite (dev) — swap for PostgreSQL in production|
+| Layer           | Technology                                    |
+|-----------------|-----------------------------------------------||
+| **Backend**     | Python 3.10+, Django 5, Django REST Framework|
+| **Auth**        | JWT via `djangorestframework-simplejwt`       |
+| **AI Engine**   | Ollama (local API) + Qwen 2.5 / 7B           |
+| **Doc Parsing** | PyPDF2, python-docx, built-in TXT            |
+| **Frontend**    | React 18, React Router v6, Lucide Icons      |
+| **Database**    | SQLite (dev) → PostgreSQL (production)       |
+| **Streaming**   | Django StreamingHttpResponse for real-time AI|
 
 ---
 
@@ -73,19 +75,23 @@ Legal_Eyes/
 ```
 eyes/
 ├── userauth/
-│   ├── views.py        # RegisterView
-│   ├── serializers.py  # User registration serializer
-│   └── urls.py         # /api/auth/register/, /api/auth/login/, /api/auth/refresh/
+│   ├── views.py             # RegisterView, CustomTokenObtainPairView
+│   ├── serializers.py       # User registration + JWT serializer
+│   ├── models.py            # (extends Django User model)
+│   └── urls.py              # POST /register/, /login/, /refresh/
 ├── docsapp/
-│   ├── models.py       # LegalDocument model
-│   ├── services.py     # Text extraction (PDF / DOCX / TXT)
-│   ├── ai_service.py   # OllamaService wrapper (summarize, simplify, risks, Q&A)
-│   ├── serializers.py  # Document serializers
-│   ├── views.py        # All document & AI API views
-│   └── urls.py         # Document & AI endpoint routes
-└── eyes/
-    ├── settings.py     # Django settings
-    └── urls.py         # Root URL router
+│   ├── models.py            # LegalDocument (user, file, extracted_text, status)
+│   ├── services.py          # extract_text_from_file() for PDF/DOCX/TXT
+│   ├── ai_service.py        # OllamaService (summarize, simplify, risks, Q&A, streaming)
+│   ├── serializers.py       # LegalDocumentSerializer, DocumentUploadSerializer
+│   ├── views.py             # Document CRUD + AI endpoints + test APIs
+│   ├── urls.py              # Routes for upload, summary, simplify, risks, qa, tests
+│   └── migrations/
+└── eyes/ (project)
+    ├── settings.py          # INSTALLED_APPS, MIDDLEWARE, DATABASES, CORS
+    ├── urls.py              # Root router (/api/auth/, /api/docs/)
+    ├── asgi.py              # ASGI config for deployment
+    └── wsgi.py              # WSGI config for deployment
 ```
 
 ### Frontend — `frontend/src/`
@@ -93,22 +99,33 @@ eyes/
 ```
 src/
 ├── components/
-│   ├── Auth/           # AuthLayout, LoginForm, RegisterForm, Auth.css
-│   └── Sidebar/        # Global Sidebar navigation menu
+│   ├── Auth/
+│   │   ├── AuthLayout.jsx       # Wrapper for login/register pages
+│   │   ├── LoginForm.jsx        # Login form with validation
+│   │   ├── RegisterForm.jsx     # Registration form with password confirm
+│   │   ├── Auth.css             # GitHub-inspired auth styling
+│   │   └── index.js             # Component exports
+│   └── Sidebar/
+│       ├── Sidebar.jsx          # Navigation menu with links
+│       └── Sidebar.css          # Sidebar styling
 ├── pages/
-│   ├── index.jsx       # Landing page (logo + navigation buttons, particle background)
-│   ├── LoginPage.jsx   # Login page
-│   ├── RegisterPage.jsx# Registration page
-│   ├── ChatPage.jsx    # AI document chat interface
-│   ├── HistoryPage.jsx # Past chat histories
-│   └── DocumentsPage.jsx # Uploaded documents library
-├── styles/
-│   └── global.css      # Core design tokens, CSS variables, typography, animations
+│   ├── index.jsx                # Landing with particle background
+│   ├── LoginPage.jsx            # Login entry point
+│   ├── RegisterPage.jsx         # Registration entry point
+│   ├── ChatPage.jsx             # Document upload + AI chat interface
+│   ├── HistoryPage.jsx          # Search and manage past conversations
+│   ├── DocumentsPage.jsx        # Document library with status and actions
+│   ├── ChatPage.css
+│   ├── HistoryPage.css
+│   └── DocumentsPage.css
 ├── utils/
-│   ├── authApi.js      # API client (login, register, token management)
-│   ├── validators.js   # Form validation (email, password, username)
-│   └── chatHistory.js  # LocalStorage chat persistence
-└── App.jsx             # Router with protected + public route guards
+│   ├── authApi.js               # API calls (login, register, getDocuments, deleteDocument)
+│   ├── validators.js            # Email, password, username validation
+│   └── chatHistory.js           # localStorage chat persistence (save/retrieve/delete)
+├── styles/
+│   └── global.css               # CSS variables, dark theme, animations
+├── App.jsx                      # Router with ProtectedRoute / PublicRoute guards
+└── index.js                     # React entry point
 ```
 
 ---
@@ -199,38 +216,40 @@ REACT_APP_API_URL=http://localhost:8000
 
 ### Auth Endpoints — `/api/auth/`
 
-| Method | Endpoint       | Description                      | Auth Required |
-|--------|----------------|----------------------------------|---------------|
-| POST   | `register/`    | Create a new user account        | No            |
-| POST   | `login/`       | Obtain JWT access + refresh token| No            |
-| POST   | `refresh/`     | Refresh access token             | No            |
+| Method | Endpoint       | Body | Description                          | Auth |
+|--------|----------------|------|--------------------------------------|------|
+| POST   | `register/`    | `{email, username, password}` | Create new user account    | No   |
+| POST   | `login/`       | `{username, password}` | Get JWT access + refresh tokens | No   |
+| POST   | `refresh/`     | `{refresh}` | Refresh expired access token | No   |
 
-### Document Endpoints — `/api/documents/`
+### Document Endpoints — `/api/docs/`
 
-| Method | Endpoint              | Description                              | Auth Required |
-|--------|-----------------------|------------------------------------------|---------------|
-| GET    | `/`                   | List all documents owned by the user     | Yes           |
-| POST   | `upload/`             | Upload a new document (PDF/DOCX/TXT)     | Yes           |
-| GET    | `<id>/`               | Retrieve a specific document             | Yes           |
-| DELETE | `<id>/`               | Delete a specific document               | Yes           |
+| Method | Endpoint              | Description                          | Auth |
+|--------|----------------------|--------------------------------------|------|
+| GET    | `/`                  | List user's documents                | Yes  |
+| POST   | `upload/`            | Upload PDF/DOCX/TXT (multipart form)| Yes  |
+| GET    | `<id>/`              | Get document details & extracted text| Yes  |
+| DELETE | `<id>/`              | Delete document                      | Yes  |
 
-### AI Feature Endpoints — `/api/documents/<id>/`
+### AI Analysis Endpoints — `/api/docs/<id>/`
 
-| Method | Endpoint      | Description                              | Auth Required |
-|--------|---------------|------------------------------------------|---------------|
-| POST   | `summary/`    | Generate a plain-English summary         | Yes           |
-| POST   | `simplify/`   | Rewrite the document in simple language  | Yes           |
-| POST   | `risks/`      | Identify risky or unfavorable clauses    | Yes           |
-| POST   | `qa/`         | Answer a specific question about the doc | Yes           |
+| Method | Endpoint      | Body | Description                                  | Auth |
+|--------|---------------|------|----------------------------------------------|------|
+| POST   | `summary/`    | `{}` | Generate document summary                    | Yes  |
+| POST   | `simplify/`   | `{}` | Simplify legal language                      | Yes  |
+| POST   | `risks/`      | `{}` | Identify risky/unfavorable clauses           | Yes  |
+| POST   | `qa/`         | `{question}` | Answer question about document              | Yes  |
 
-### Dev/Test Endpoints — `/api/documents/test/`
+**Note:** All AI endpoints support streaming responses for real-time output in the frontend.
+
+### Test/Development Endpoints — `/api/docs/test/`
 
 | Method | Endpoint       | Description                              |
 |--------|----------------|------------------------------------------|
-| GET    | `ollama/`      | Verify local Ollama API connection       |
-| POST   | `extract/`     | Test text extraction without saving      |
-| POST   | `ai/`          | Test AI analysis with raw text           |
-| POST   | `qa/`          | Test Q&A with raw text + question        |
+| GET    | `ollama/`      | Check Ollama API connection (no auth req)|
+| POST   | `extract/`     | Test file extraction without saving     |
+| POST   | `ai/`          | Test AI analysis with raw text          |
+| POST   | `qa/`          | Test Q&A with raw text + question       |
 
 ---
 
@@ -238,27 +257,36 @@ REACT_APP_API_URL=http://localhost:8000
 
 ### ✅ Implemented
 
-- [x] User registration and login with JWT
-- [x] Protected and public route handling in the React SPA
-- [x] Document upload with automatic text extraction (PDF, DOCX, TXT)
-- [x] AI-powered document summarization
-- [x] AI-powered clause simplification
-- [x] AI-powered risk identification
-- [x] AI-powered Q&A on document content
-- [x] **New:** Modern, responsive dark-themed Chat interface (ChatGPT/Gemini inspired)
-- [x] **New:** Real-time upload progress and thumbnail preview parsing
-- [x] **New:** Stop-generation capability (AbortController) to cancel active AI queries
-- [x] **New:** Chat History persistence tracking past sessions
-- [x] **New:** "My Documents" library page with irrecoverable delete confirmation modal
-- [x] Landing page with animated particle background
+- [x] **User Authentication** — Secure registration and login with JWT tokens
+- [x] **Protected Routes** — Public (login, register) and protected (chat, docs, history) routes
+- [x] **Multi-Format Upload** — PDF, DOCX, and TXT document support with automatic text extraction
+- [x] **Real-Time Streaming** — AI responses stream token-by-token for better UX
+- [x] **Document Summarization** — Generate concise summaries of legal documents
+- [x] **Legal Language Simplification** — Convert complex legal terms to plain English
+- [x] **Risk Identification** — Highlight unfavorable clauses and potential concerns
+- [x] **Document Q&A** — Ask targeted questions and get answers based on document content
+- [x] **Chat History** — Persistent storage and retrieval of past conversations (localStorage)
+- [x] **Document Library** — View, download, and delete uploaded documents with status tracking
+- [x] **Upload Progress** — Real-time visual feedback during file upload (progress ring)
+- [x] **Cancel Generation** — Stop active AI analysis using AbortController
+- [x] **Dark Theme UI** — Modern, ChatGPT/Gemini-inspired dark interface with animations
+- [x] **Search History** — Find past chats by title, document name, or message content
+- [x] **Responsive Design** — Mobile-friendly frontend with Sidebar navigation
 
 ### 🚧 Planned / In Progress
 
-- [ ] Mobile application (React Native — `mobile/` directory)
-- [ ] Production deployment configuration
-- [ ] Async document processing with Celery
-- [ ] Multi-document chat sessions
-- [ ] PostgreSQL support for production
+- [ ] **Mobile App** — React Native application (separate repository — `mobile/` directory)
+- [ ] **Production Deployment** — Docker, nginx, SSL, and environment hardening
+- [ ] **Async Processing** — Celery workers for background document extraction and AI analysis
+- [ ] **Multi-Document Sessions** — Analyze and compare multiple documents in one chat
+- [ ] **Clause Comparison** — Side-by-side comparison of contract clauses
+- [ ] **Compliance Checklists** — Template-based compliance verification
+- [ ] **Collaborative Review** — Team workspaces and comment threads
+- [ ] **PostgreSQL Migration** — Production-grade database with connection pooling
+- [ ] **Custom AI Models** — Fine-tuned legal domain models
+- [ ] **API Rate Limiting** — Prevent abuse and manage server load
+- [ ] **Export to PDF** — Download chat transcripts and analysis reports
+- [ ] **Email Notifications** — Alerts for document processing completion
 
 ---
 

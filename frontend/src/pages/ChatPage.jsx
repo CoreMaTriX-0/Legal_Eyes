@@ -55,27 +55,103 @@ function uploadDocumentXHR(file, onProgress, signal) {
   });
 }
 
-async function askQuestion(documentId, question, signal) {
+async function askQuestion(documentId, question, signal, onChunk) {
   const res = await fetch(`${API_BASE}/docs/${documentId}/qa/`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ question }),
     signal,
   });
-  if (!res.ok) throw new Error(`Q&A failed: ${res.status}`);
-  const data = await res.json();
-  return data.answer;
+
+  if (!res.ok) {
+    let errorMessage = `Q&A failed: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) errorMessage = data.error;
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) errorMessage = text;
+      } catch {
+        // Use the default error message when response parsing fails.
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+
+  const decoder = new TextDecoder();
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    if (chunk) {
+      fullText += chunk;
+      onChunk?.(chunk);
+    }
+  }
+
+  const trailing = decoder.decode();
+  if (trailing) {
+    fullText += trailing;
+    onChunk?.(trailing);
+  }
+
+  return fullText;
 }
 
-async function fetchSummary(documentId, signal) {
+async function fetchSummary(documentId, signal, onChunk) {
   const res = await fetch(`${API_BASE}/docs/${documentId}/summary/`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     signal,
   });
-  if (!res.ok) throw new Error(`Summary failed: ${res.status}`);
-  const data = await res.json();
-  return data.summary;
+
+  if (!res.ok) {
+    let errorMessage = `Summary failed: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) errorMessage = data.error;
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) errorMessage = text;
+      } catch {
+        // Use the default error message when response parsing fails.
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+
+  const decoder = new TextDecoder();
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    if (chunk) {
+      fullText += chunk;
+      onChunk?.(chunk);
+    }
+  }
+
+  const trailing = decoder.decode();
+  if (trailing) {
+    fullText += trailing;
+    onChunk?.(trailing);
+  }
+
+  return fullText;
 }
 
 // SVG circular progress ring  
@@ -112,6 +188,7 @@ export default function ChatPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadPreview, setUploadPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState(null);
   const [chatId, setChatId] = useState(null);
   const [chatTitle, setChatTitle] = useState("New Chat");
@@ -236,8 +313,18 @@ export default function ChatPage() {
   };
 
   // ── message helpers ──
-  const addMessage = (role, text, fileData = null) => {
-    setMessages((prev) => [...prev, { id: Date.now() + Math.random(), role, text, fileData }]);
+  const addMessage = (role, text, fileData = null, customId = null) => {
+    const id = customId ?? Date.now() + Math.random();
+    setMessages((prev) => [...prev, { id, role, text, fileData }]);
+    return id;
+  };
+
+  const appendMessageChunk = (messageId, chunk) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, text: `${msg.text || ""}${chunk}` } : msg
+      )
+    );
   };
 
   // ── send question / staged file ──
@@ -275,15 +362,54 @@ export default function ChatPage() {
         // Render the single unified user bubble
         addMessage("user", q, { name: originalName, type: fileType });
         setLoading(true);
+        setIsStreaming(true);
 
-        const summaryOrAnswer = q ? await askQuestion(docId, q, controller.signal) : await fetchSummary(docId, controller.signal);
-        addMessage("assistant", summaryOrAnswer);
+        const assistantMessageId = Date.now() + Math.random();
+        addMessage("assistant", "", null, assistantMessageId);
+
+        let receivedChunk = false;
+        const onChunk = (chunk) => {
+          if (!chunk) return;
+          if (!receivedChunk) {
+            receivedChunk = true;
+            setLoading(false);
+          }
+          appendMessageChunk(assistantMessageId, chunk);
+        };
+
+        const finalText = q
+          ? await askQuestion(docId, q, controller.signal, onChunk)
+          : await fetchSummary(docId, controller.signal, onChunk);
+
+        if (!receivedChunk) {
+          setLoading(false);
+          appendMessageChunk(assistantMessageId, finalText || "No response generated.");
+        }
       } else {
         // No new file, just standard Q&A
         addMessage("user", q);
         setLoading(true);
-        const answer = await askQuestion(document.id, q, controller.signal);
-        addMessage("assistant", answer);
+        setIsStreaming(true);
+
+        const assistantMessageId = Date.now() + Math.random();
+        addMessage("assistant", "", null, assistantMessageId);
+
+        let receivedChunk = false;
+        const onChunk = (chunk) => {
+          if (!chunk) return;
+          if (!receivedChunk) {
+            receivedChunk = true;
+            setLoading(false);
+          }
+          appendMessageChunk(assistantMessageId, chunk);
+        };
+
+        const finalText = await askQuestion(document.id, q, controller.signal, onChunk);
+
+        if (!receivedChunk) {
+          setLoading(false);
+          appendMessageChunk(assistantMessageId, finalText || "No response generated.");
+        }
       }
     } catch (err) {
       if (err.name === "AbortError") {
@@ -296,6 +422,7 @@ export default function ChatPage() {
       }
     } finally {
       setUploading(false);
+      setIsStreaming(false);
       setLoading(false);
       setUploadProgress(0);
       abortRef.current = null;
@@ -351,7 +478,7 @@ export default function ChatPage() {
     }
   };
 
-  const isProcessing = loading || uploading;
+  const isProcessing = loading || uploading || isStreaming;
 
   // ─── render ─────────────────────────────────────────────────────────────────
   return (
@@ -478,7 +605,7 @@ export default function ChatPage() {
               </div>
             ))}
 
-            {isProcessing && (
+            {(loading || uploading) && (
               <div className="msg-row msg-assistant">
                 <div className="msg-avatar">
                   <img src="/legaleye logo.png" alt="LE" className="msg-avatar-img" />

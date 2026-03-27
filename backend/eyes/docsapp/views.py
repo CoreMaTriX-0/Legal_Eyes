@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.http import StreamingHttpResponse
 
 from .models import LegalDocument
 from .serializers import LegalDocumentSerializer, DocumentUploadSerializer
@@ -14,6 +15,13 @@ from .services import extract_text_from_file
 from .ai_service import OllamaService
 
 logger = logging.getLogger(__name__)
+
+
+def stream_plain_text(chunks):
+    response = StreamingHttpResponse(chunks, content_type='text/plain; charset=utf-8')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
 
 class DocumentListView(generics.ListAPIView):
     """List all documents for the authenticated user"""
@@ -83,15 +91,8 @@ def document_summary(request, document_id):
         )
     
     ai_service = OllamaService()
-    summary = ai_service.summarize_document(document.extracted_text)
-    
-    if summary:
-        return Response({'summary': summary})
-    else:
-        return Response(
-            {'error': 'Failed to generate summary. Please try again later.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    summary_chunks = ai_service.summarize_document(document.extracted_text, stream=True)
+    return stream_plain_text(summary_chunks)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -110,15 +111,8 @@ def document_simplify(request, document_id):
         )
     
     ai_service = OllamaService()
-    simplified = ai_service.simplify_clauses(document.extracted_text)
-    
-    if simplified:
-        return Response({'simplified_text': simplified})
-    else:
-        return Response(
-            {'error': 'Failed to simplify document. Please try again later.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    simplified_chunks = ai_service.simplify_clauses(document.extracted_text, stream=True)
+    return stream_plain_text(simplified_chunks)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -137,15 +131,8 @@ def document_risks(request, document_id):
         )
     
     ai_service = OllamaService()
-    risks = ai_service.identify_risks(document.extracted_text)
-    
-    if risks:
-        return Response({'risks': risks})
-    else:
-        return Response(
-            {'error': 'Failed to identify risks. Please try again later.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    risk_chunks = ai_service.identify_risks(document.extracted_text, stream=True)
+    return stream_plain_text(risk_chunks)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -171,18 +158,8 @@ def document_qa(request, document_id):
         )
     
     ai_service = OllamaService()
-    answer = ai_service.answer_question(document.extracted_text, question)
-    
-    if answer:
-        return Response({
-            'question': question,
-            'answer': answer
-        })
-    else:
-        return Response(
-            {'error': 'Failed to answer question. Please try again later.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    answer_chunks = ai_service.answer_question(document.extracted_text, question, stream=True)
+    return stream_plain_text(answer_chunks)
 
 # Test APIs for easy feature testing
 @api_view(['GET'])
